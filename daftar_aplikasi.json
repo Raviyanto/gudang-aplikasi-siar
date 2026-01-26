@@ -1,0 +1,30 @@
+[
+  {
+    "id": "manajer-berkas",
+    "nama": "Manajer Berkas",
+    "deskripsi": "Kelola dokumen dan berkas sistem Siar Kota OS.",
+    "versi": "1.0",
+    "ikon": "📂"
+  },
+  {
+    "id": "catatan",
+    "nama": "Catatan Siar",
+    "deskripsi": "Aplikasi catatan sederhana untuk memo publik.",
+    "versi": "1.0",
+    "ikon": "📝"
+  },
+  {
+    "id": "penjelajah",
+    "nama": "Penjelajah Web",
+    "deskripsi": "Akses informasi web dan portal berita kota.",
+    "versi": "1.0",
+    "ikon": "🌐"
+  },
+  {
+    "id": "kalkulator",
+    "nama": "Kalkulator Siar",
+    "deskripsi": "Aplikasi perhitungan dasar dengan tema neon hijau.",
+    "versi": "1.0",
+    "ikon": "🧮"
+  }
+]
