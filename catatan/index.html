@@ -2,22 +2,172 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Catatan - Siar Kota</title>
+    <title>Siar Catatan Pro</title>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; padding: 20px; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 15px; }
-        .btn { background: #0f0; color: #000; border: none; padding: 8px 15px; cursor: pointer; font-weight: bold; }
-        textarea { width: 100%; height: 70vh; background: #111; color: #0f0; border: 1px solid #0f0; padding: 15px; font-size: 18px; outline: none; }
+        :root {
+            --neon: #39ff14;
+            --bg: #000;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--neon);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Navigasi Atas */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--neon);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            background: none;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .btn-back:hover {
+            background: var(--neon);
+            color: #000;
+        }
+
+        /* Area Input Nama File */
+        .filename-container {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #111;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 10px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        /* Area Teks Catatan */
+        textarea {
+            flex: 1;
+            background: #050505;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 15px;
+            font-family: inherit;
+            font-size: 1.1rem;
+            outline: none;
+            resize: none;
+            box-shadow: inset 0 0 10px rgba(57, 255, 20, 0.1);
+        }
+
+        /* Tombol Simpan */
+        .btn-save {
+            margin-top: 15px;
+            background: var(--neon);
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-save:hover {
+            box-shadow: 0 0 20px var(--neon);
+            transform: translateY(-2px);
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            height: 1rem;
+        }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h2>📝 Catatan Siar</h2>
-        <div>
-            <button class="btn" onclick="alert('Catatan Disimpan!')">SIMPAN</button>
-            <button class="btn" onclick="window.location.href='../../aset/dashboard.html'">KEMBALI</button>
-        </div>
+        <button class="btn-back" onclick="kembali()">◀ DASHBOARD</button>
+        <h2 style="margin: 0; text-shadow: 0 0 10px var(--neon);">CATATAN_KOTA</h2>
     </div>
-    <textarea placeholder="Ketik catatan di sini..."></textarea>
+
+    <div class="filename-container">
+        <span>NAMA_FILE:</span>
+        <input type="text" id="inputNama" placeholder="contoh: agenda_rapat_januari">
+        <span>.txt</span>
+    </div>
+
+    <textarea id="areaTeks" placeholder="Tuliskan catatan penting di sini..."></textarea>
+
+    <button class="btn-save" onclick="eksekusiSimpan()">SIMPAN KE DOKUMEN SISTEM</button>
+    
+    <div id="status" class="status-msg"></div>
+
+    
+
+    <script>
+        let toko, saraf;
+
+        // Inisialisasi QWebChannel untuk komunikasi dengan Python
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            // Objek navigasi
+            toko = channel.objects.tokoManager; 
+            // Objek saraf khusus catatan
+            saraf = channel.objects.catatanSaraf; 
+        });
+
+        function kembali() {
+            if (toko) {
+                // Kembali ke dashboard via otak.py
+                toko.buka_aplikasi_siar('dashboard');
+            }
+        }
+
+        function eksekusiSimpan() {
+            const nama = document.getElementById('inputNama').value;
+            const isi = document.getElementById('areaTeks').value;
+            const statusBox = document.getElementById('status');
+
+            if (!nama) {
+                alert("Peringatan: Nama file tidak boleh kosong!");
+                return;
+            }
+
+            if (!saraf) {
+                alert("Error: Koneksi saraf sistem belum siap.");
+                return;
+            }
+
+            // Memanggil fungsi Python di saraf_catatan.py
+            saraf.simpan_ke_berkas(nama, isi, function(hasil) {
+                statusBox.innerText = hasil;
+                // Hilangkan pesan status setelah 3 detik
+                setTimeout(() => { statusBox.innerText = ""; }, 3000);
+            });
+        }
+    </script>
 </body>
 </html>
