@@ -1,36 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Siar Kalkulator</title>
     <style>
         :root { --neon: #39ff14; --bg: #000; }
-        body { background: var(--bg); color: var(--neon); font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .calc-box { border: 2px solid var(--neon); padding: 20px; box-shadow: 0 0 15px var(--neon); }
-        #screen { width: 100%; height: 50px; background: #111; border: 1px solid var(--neon); color: var(--neon); text-align: right; font-size: 1.5rem; margin-bottom: 10px; padding: 5px; box-sizing: border-box; }
-        .buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        button { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 15px; cursor: pointer; font-size: 1.2rem; }
-        button:hover { background: var(--neon); color: var(--bg); }
-        .btn-back { margin-top: 20px; border: none; text-decoration: underline; cursor: pointer; color: var(--neon); background: none; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .calc-box { border: 2px solid var(--neon); padding: 20px; box-shadow: 0 0 15px var(--neon); width: 300px; }
+        #display { width: 100%; background: #111; border: 1px solid var(--neon); color: var(--neon); text-align: right; padding: 10px; font-size: 1.5em; margin-bottom: 10px; box-sizing: border-box; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        button { background: #000; border: 1px solid var(--neon); color: var(--neon); padding: 15px; cursor: pointer; font-weight: bold; }
+        button:hover { background: var(--neon); color: #000; }
+        .btn-sci { font-size: 0.8em; background: #052205; }
     </style>
 </head>
 <body>
-    <h2>KALKULATOR_SIAR_V1</h2>
     <div class="calc-box">
-        <input type="text" id="screen" readonly>
-        <div class="buttons">
-            <button onclick="add('7')">7</button><button onclick="add('8')">8</button><button onclick="add('9')">9</button><button onclick="clearS()">C</button>
-            <button onclick="add('4')">4</button><button onclick="add('5')">5</button><button onclick="add('6')">6</button><button onclick="add('*')">x</button>
+        <input type="text" id="display" disabled value="0">
+        <div class="grid">
+            <button class="btn-sci" onclick="sci('sin')">sin</button>
+            <button class="btn-sci" onclick="sci('cos')">cos</button>
+            <button class="btn-sci" onclick="sci('tan')">tan</button>
+            <button class="btn-sci" onclick="sci('sqrt')">√</button>
+            <button class="btn-sci" onclick="sci('pow')">x²</button>
+            <button class="btn-sci" onclick="sci('log')">log</button>
+            <button class="btn-sci" onclick="sci('pi')">π</button>
+            <button onclick="clearDisplay()">C</button>
+            
+            <button onclick="add('7')">7</button><button onclick="add('8')">8</button><button onclick="add('9')">9</button><button onclick="add('/')">/</button>
+            <button onclick="add('4')">4</button><button onclick="add('5')">5</button><button onclick="add('6')">6</button><button onclick="add('*')">*</button>
             <button onclick="add('1')">1</button><button onclick="add('2')">2</button><button onclick="add('3')">3</button><button onclick="add('-')">-</button>
-            <button onclick="add('0')">0</button><button onclick="add('.')">.</button><button onclick="solve()">=</button><button onclick="add('+')">+</button>
+            <button onclick="add('0')">0</button><button onclick="add('.')">.</button><button onclick="calculate()">=</button><button onclick="add('+')">+</button>
         </div>
     </div>
-    <button class="btn-back" onclick="window.location.href='../../aset/dashboard.html'">KEMBALI_KE_SISTEM</button>
 
     <script>
-        const s = document.getElementById('screen');
-        function add(v) { s.value += v; }
-        function clearS() { s.value = ''; }
-        function solve() { try { s.value = eval(s.value); } catch { s.value = 'ERROR'; } }
+        let disp = document.getElementById('display');
+        function add(v) { if(disp.value === "0") disp.value = v; else disp.value += v; }
+        function clearDisplay() { disp.value = "0"; }
+        function calculate() { try { disp.value = eval(disp.value); } catch { disp.value = "Error"; } }
+        
+        function sci(fn) {
+            let v = parseFloat(disp.value);
+            if (fn === 'sin') disp.value = Math.sin(v * Math.PI / 180).toFixed(4);
+            if (fn === 'cos') disp.value = Math.cos(v * Math.PI / 180).toFixed(4);
+            if (fn === 'tan') disp.value = Math.tan(v * Math.PI / 180).toFixed(4);
+            if (fn === 'sqrt') disp.value = Math.sqrt(v).toFixed(4);
+            if (fn === 'pow') disp.value = Math.pow(v, 2);
+            if (fn === 'log') disp.value = Math.log10(v).toFixed(4);
+            if (fn === 'pi') disp.value = Math.PI.toFixed(4);
+        }
     </script>
 </body>
 </html>
