@@ -26,5 +26,12 @@
     "deskripsi": "Aplikasi perhitungan dasar dengan tema neon hijau.",
     "versi": "1.0",
     "ikon": "🧮"
+  },
+  {
+    "id": "catur",
+    "nama": "Siar Catur",
+    "deskripsi": "Permainan strategi catur klasik dengan tema neon hijau.",
+    "versi": "1.0",
+    "ikon": "icon.png"
   }
 ]
