@@ -2,96 +2,76 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Siar Hacker Navigator V4 - Fixed</title>
+    <title>Siar Hacker Navigator V4</title>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
         :root { --neon: #39ff14; --bg: #000; --dim: rgba(57, 255, 20, 0.1); }
-        
-        /* 1. RESET GLOBAL: Mencegah elemen melebar */
-        * { box-sizing: border-box; }
-        
         body { 
             background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; 
-            margin: 0; padding: 0; display: flex; flex-direction: column; 
-            height: 100vh; width: 100vw; overflow: hidden; /* Kunci layar */
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
             background-image: radial-gradient(var(--dim) 1px, transparent 1px); background-size: 30px 30px;
         }
 
-        /* 2. TOP BAR: Perbaikan distribusi tombol */
+        /* Top Bar Navigasi */
         .top-bar { 
-            display: flex; gap: 10px; padding: 10px 15px; background: #050505;
-            border-bottom: 2px solid var(--neon); align-items: center;
-            width: 100%; flex-shrink: 0;
+            display: flex; gap: 15px; padding: 10px 20px; background: #050505;
+            border-bottom: 2px solid var(--neon); align-items: center; z-index: 100;
         }
 
         .btn { 
             background: none; border: 1px solid var(--neon); color: var(--neon); 
             padding: 8px 12px; cursor: pointer; font-family: inherit; font-weight: bold;
-            white-space: nowrap; /* Jangan biarkan teks tombol turun baris */
         }
         .btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 10px var(--neon); }
 
-        input#urlInput { 
-            flex: 1; min-width: 0; background: #0a0a0a; border: 1px solid var(--neon); 
-            color: var(--neon); padding: 10px; outline: none;
-        }
+        /* Viewport Area */
+        .viewport { flex: 1; position: relative; background: #000; }
 
-        /* 3. VIEWPORT UTAMA */
-        .viewport { flex: 1; width: 100%; position: relative; overflow: hidden; }
-
-        /* GOOGLE HOME */
+        /* 🟢 HOME VIEW: Google Search Terpusat */
         #home-view {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; width: 100%; text-align: center;
+            height: 100%; text-align: center;
         }
+        
+        .google-logo { font-size: 3.5rem; letter-spacing: 10px; margin-bottom: 30px; text-shadow: 0 0 20px var(--neon); }
         .central-search {
-            width: 80%; max-width: 500px; background: #000; border: 2px solid var(--neon);
-            padding: 15px; color: var(--neon); font-size: 1.2rem; outline: none;
+            width: 60%; max-width: 600px; background: #000; border: 2px solid var(--neon);
+            padding: 20px; color: var(--neon); font-size: 1.2rem; font-family: inherit;
+            outline: none; box-shadow: 0 0 15px var(--dim);
         }
 
-        /* 4. FILE MANAGER: Scroll hanya vertikal */
+        /* 📁 FILE MANAGER VIEW */
         #file-manager { 
-            display: none; padding: 20px; height: 100%; width: 100%; 
-            overflow-y: auto; overflow-x: hidden;
+            display: none; padding: 30px; height: 100%; box-sizing: border-box; overflow-y: auto;
         }
-        .file-grid { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
-            gap: 15px; width: 100%;
-        }
+        .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; }
         .file-card { 
-            border: 1px solid var(--dim); padding: 10px; text-align: center; cursor: pointer; 
-            background: rgba(0,25,0,0.3); overflow: hidden;
+            border: 1px solid var(--dim); padding: 20px; text-align: center; cursor: pointer; 
+            background: rgba(0,25,0,0.3); transition: 0.3s;
         }
+        .file-card:hover { border-color: var(--neon); background: var(--dim); transform: scale(1.05); }
 
-        /* 5. EDITOR OVERLAY: Perbaikan posisi tombol SIMPAN/BATAL */
+        /* EDITOR OVERLAY */
         #editor-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            background: #000; z-index: 200; display: none; flex-direction: column; 
-            padding: 15px; /* Kurangi padding agar tidak sesak */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; z-index: 200; display: none; flex-direction: column; padding: 30px;
         }
-        .editor-header {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; margin-bottom: 10px; padding-right: 5px; /* Beri ruang di kanan */
-        }
-        textarea { 
-            flex: 1; width: 100%; background: #050505; color: var(--neon); 
-            border: 1px solid var(--neon); padding: 15px; font-size: 1.1rem; resize: none;
-        }
+        textarea { flex: 1; background: #050505; color: var(--neon); border: 1px solid var(--neon); padding: 20px; font-size: 1.2rem; outline: none; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <button class="btn" onclick="tampilHome()">🏠 HOME</button>
-        <input type="text" id="urlInput" placeholder=">> CARI GOOGLE..." onkeydown="if(event.key==='Enter') navigasiCepat(this.value)">
         <button class="btn" onclick="tampilFiles()">📁 BERKAS_LOKAL</button>
-        <button class="btn" style="border-color:#f33; color:#f33" onclick="toko.buka_aplikasi_siar('dashboard')">KELUAR</button>
+        <div style="flex:1"></div> <button class="btn" style="border-color:#f33; color:#f33" onclick="toko.buka_aplikasi_siar('dashboard')">KELUAR</button>
     </div>
 
     <div class="viewport">
         <div id="home-view">
-            <div style="font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px;">GOOGLE_SIAR</div>
-            <input type="text" class="central-search" placeholder=">> SEARCH..." onkeydown="if(event.key==='Enter') navigasiCepat(this.value)">
+            <div class="google-logo">GOOGLE_SIAR</div>
+            <input type="text" class="central-search" id="mainSearch" placeholder=">> CARI DI GOOGLE ATAU MASUKKAN URL..." onkeydown="if(event.key==='Enter') navigasiCepat(this.value)">
+            <p style="margin-top:20px; opacity:0.5; font-size:0.8rem;">SIAR_NAVIGATOR // STABLE_CHANNEL</p>
         </div>
 
         <div id="file-manager">
@@ -101,17 +81,16 @@
     </div>
 
     <div id="editor-overlay">
-        <div class="editor-header">
-            <b id="edit-title">FILE: -</b>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn" style="background: var(--neon); color: #000;" onclick="simpan()">SIMPAN</button>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3 id="edit-title">EDIT_FILE</h3>
+            <div style="gap:10px; display:flex;">
+                <button class="btn" style="background:var(--neon); color:#000" onclick="simpan()">SIMPAN</button>
                 <button class="btn" onclick="tutupEditor()">BATAL</button>
             </div>
         </div>
-        <textarea id="text-editor" spellcheck="false"></textarea>
+        <textarea id="text-editor"></textarea>
     </div>
 
-    
     <script>
         let saraf, toko, currentPath = "Dokumen/Siar_Catatan", editingPath = "";
 
@@ -124,7 +103,7 @@
         function navigasiCepat(q) {
             if(!q) return;
             let url = q.includes('.') ? (q.startsWith('http') ? q : 'https://'+q) : 'https://www.google.com/search?q='+encodeURIComponent(q);
-            toko.navigasi_langsung(url);
+            toko.navigasi_langsung(url); // Langsung pindah ke web tanpa iframe
         }
 
         function tampilHome() {
@@ -146,7 +125,7 @@
                     const card = document.createElement('div');
                     card.className = "file-card";
                     const ikon = item.tipe === 'folder' ? '📁' : '📄';
-                    card.innerHTML = `<span style="font-size:2.5rem; display:block;">${ikon}</span><span style="font-size:0.75rem; word-break:break-all;">${item.nama}</span>`;
+                    card.innerHTML = `<span style="font-size:3rem; display:block; margin-bottom:10px;">${ikon}</span><span>${item.nama}</span>`;
                     card.onclick = () => { if(item.tipe === 'berkas') bukaEditor(item.path_relatif); };
                     list.appendChild(card);
                 });
@@ -156,7 +135,7 @@
         function bukaEditor(path) {
             editingPath = path;
             saraf.baca_isi_berkas(path, function(isi) {
-                document.getElementById('edit-title').innerText = "EDIT: " + path.split('/').pop();
+                document.getElementById('edit-title').innerText = "EDITING: " + path.split('/').pop();
                 document.getElementById('text-editor').value = isi;
                 document.getElementById('editor-overlay').style.display = 'flex';
             });
@@ -164,7 +143,7 @@
 
         function simpan() {
             saraf.simpan_isi_berkas(editingPath, document.getElementById('text-editor').value, function(s) {
-                if(s) { alert("Data Tersimpan!"); tutupEditor(); }
+                if(s) alert("Tersimpan!"); tutupEditor();
             });
         }
 
