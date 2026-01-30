@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Siar Berkas Explorer</title>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <style>
+        :root { --neon: #39ff14; --bg: #000; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
+        
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--neon); padding-bottom: 10px; margin-bottom: 20px; 
+        }
+        
+        .btn { 
+            background: none; border: 1px solid var(--neon); color: var(--neon); 
+            padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold; 
+        }
+        .btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 10px var(--neon); }
+
+        /* List Berkas */
+        .file-list { border: 1px solid var(--neon); min-height: 400px; padding: 10px; background: #050505; }
+        .item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px; border-bottom: 1px solid #111; transition: 0.2s;
+        }
+        .item:hover { background: #0a220a; border-color: var(--neon); }
+        .item-info { display: flex; align-items: center; cursor: pointer; flex-grow: 1; }
+        .icon { margin-right: 15px; font-size: 1.2rem; }
+        .nama-file { font-size: 1.1rem; }
+
+        /* Viewer Popup */
+        #viewer { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80%; height: 80%; background: #000; border: 2px solid var(--neon);
+            display: none; flex-direction: column; padding: 20px; z-index: 100;
+        }
+        textarea { 
+            flex: 1; background: #111; color: var(--neon); border: 1px solid var(--neon); 
+            padding: 15px; font-family: inherit; font-size: 1rem; margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="header">
+    <div>
+        <h2 style="margin:0">📂 MANAJER_BERKAS</h2>
+        <small id="path-display" style="color: #fff; background: #222; padding: 2px 5px;"></small>
+    </div>
+        <button class="btn" onclick="kembaliKeDashboard()">◀ DASHBOARD</button>
+    </div>
+
+
+
+    <div id="display-list" class="file-list">
+        </div>
+
+    <div id="viewer">
+        <h3 id="view-title" style="margin-top:0">ISI_BERKAS</h3>
+        <textarea id="file-content" readonly></textarea>
+        <button class="btn" onclick="tutupViewer()">TUTUP</button>
+    </div>
+
+    
+
+    <script>
+        let saraf, toko, currentPath = "";
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            saraf = channel.objects.berkasSaraf; // Koneksi ke saraf_berkas.py
+            toko = channel.objects.tokoManager;  // Koneksi ke otak.py
+            muatFolder("");
+        });
+
+        function muatFolder(path) {
+            currentPath = path;
+            document.getElementById('path-display').innerText = "HOME / " + path;
+            
+            saraf.telusuri_folder(path, function(items) {
+                const container = document.getElementById('display-list');
+                container.innerHTML = "";
+
+                // Tombol Back folder
+                if(path !== "") {
+                    const backDiv = document.createElement('div');
+                    backDiv.className = "item";
+                    backDiv.innerHTML = `<div class="item-info" onclick="naikFolder()">
+                        <span class="icon">🔙</span><span class="nama-file">.. (KEMBALI)</span>
+                    </div>`;
+                    container.appendChild(backDiv);
+                }
+
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "item";
+                    const ikon = item.tipe === 'folder' ? '📁' : '📄';
+                    
+                    div.innerHTML = `
+                        <div class="item-info" onclick="aksiItem('${item.path_relatif}', '${item.tipe}')">
+                            <span class="icon">${ikon}</span>
+                            <span class="nama-file">${item.nama}</span>
+                        </div>
+                        <div>
+                            <button class="btn" style="padding:4px 8px" onclick="renameItem('${item.path_relatif}')">✏️</button>
+                            <button class="btn" style="padding:4px 8px; border-color:#f33; color:#f33" onclick="hapusItem('${item.path_relatif}')">❌</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        }
+
+        function aksiItem(path, tipe) {
+            if(tipe === 'folder') muatFolder(path);
+            else bukaIsiBerkas(path);
+        }
+
+        function bukaIsiBerkas(path) {
+            saraf.baca_isi_berkas(path, function(konten) {
+                document.getElementById('view-title').innerText = "MENINJAU: " + path.split('/').pop();
+                document.getElementById('file-content').value = konten;
+                document.getElementById('viewer').style.display = 'flex';
+            });
+        }
+
+        function hapusItem(path) {
+            if(confirm("Hapus file/folder ini secara permanen?")) {
+                saraf.hapus_item(path, function(sukses) {
+                    if(sukses) muatFolder(currentPath);
+                    else alert("Gagal menghapus!");
+                });
+            }
+        }
+
+        function renameItem(path) {
+            const namaBaru = prompt("Masukkan nama baru:");
+            if(namaBaru) {
+                saraf.ganti_nama(path, namaBaru, function(sukses) {
+                    if(sukses) muatFolder(currentPath);
+                    else alert("Gagal ganti nama!");
+                });
+            }
+        }
+
+        function naikFolder() {
+            let p = currentPath.split('/');
+            p.pop();
+            muatFolder(p.join('/'));
+        }
+
+        function tutupViewer() { document.getElementById('viewer').style.display = 'none'; }
+        function kembaliKeDashboard() { toko.buka_aplikasi_siar('dashboard'); }
+    </script>
+</body>
+</html>

@@ -6,90 +6,73 @@
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
         :root { --neon: #39ff14; --bg: #000; }
-        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; padding: 20px; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         
-        .header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 2px solid var(--neon); padding-bottom: 10px; margin-bottom: 20px; 
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon); padding-bottom: 15px; margin-bottom: 15px; }
+        .path-bar { background: #111; padding: 5px 10px; font-size: 0.8rem; border: 1px solid #222; overflow-x: auto; white-space: nowrap; }
         
-        .btn { 
-            background: none; border: 1px solid var(--neon); color: var(--neon); 
-            padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold; 
-        }
+        .btn { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold; }
         .btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 10px var(--neon); }
 
-        /* List Berkas */
-        .file-list { border: 1px solid var(--neon); min-height: 400px; padding: 10px; background: #050505; }
-        .item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px; border-bottom: 1px solid #111; transition: 0.2s;
-        }
-        .item:hover { background: #0a220a; border-color: var(--neon); }
+        /* List Area */
+        #display-list { flex: 1; border: 1px solid var(--neon); overflow-y: auto; background: #050505; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #111; }
+        .item:hover { background: #0a220a; }
         .item-info { display: flex; align-items: center; cursor: pointer; flex-grow: 1; }
         .icon { margin-right: 15px; font-size: 1.2rem; }
-        .nama-file { font-size: 1.1rem; }
-
-        /* Viewer Popup */
-        #viewer { 
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 80%; height: 80%; background: #000; border: 2px solid var(--neon);
-            display: none; flex-direction: column; padding: 20px; z-index: 100;
-        }
-        textarea { 
-            flex: 1; background: #111; color: var(--neon); border: 1px solid var(--neon); 
-            padding: 15px; font-family: inherit; font-size: 1rem; margin-bottom: 15px;
-        }
+        
+        /* Viewer / Editor Overlay */
+        #viewer { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; height: 85%; background: #000; border: 2px solid var(--neon); display: none; flex-direction: column; padding: 20px; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.9); }
+        textarea { flex: 1; background: #0a0a0a; color: var(--neon); border: 1px solid var(--neon); padding: 15px; font-family: inherit; font-size: 1.1rem; margin: 15px 0; outline: none; line-height: 1.5; }
     </style>
 </head>
 <body>
-    
     <div class="header">
-    <div>
-        <h2 style="margin:0">📂 MANAJER_BERKAS</h2>
-        <small id="path-display" style="color: #fff; background: #222; padding: 2px 5px;"></small>
-    </div>
+        <h2 style="margin:0">📂 SIAR_EXPLORER</h2>
         <button class="btn" onclick="kembaliKeDashboard()">◀ DASHBOARD</button>
     </div>
+    
+    <div class="path-bar" id="path-display">HOME</div>
 
-
-
-    <div id="display-list" class="file-list">
-        </div>
+    <div id="display-list"></div>
 
     <div id="viewer">
-        <h3 id="view-title" style="margin-top:0">ISI_BERKAS</h3>
-        <textarea id="file-content" readonly></textarea>
-        <button class="btn" onclick="tutupViewer()">TUTUP</button>
+        <div style="display: flex; justify-content: space-between;">
+            <h3 id="view-title" style="margin:0">EDITOR_BERKAS</h3>
+            <span id="save-status"></span>
+        </div>
+        <textarea id="file-content" placeholder="Ketik sesuatu..."></textarea>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" style="flex:2; background: var(--neon); color:#000" onclick="simpanEdit()">SIMPAN PERUBAHAN</button>
+            <button class="btn" style="flex:1" onclick="tutupViewer()">TUTUP</button>
+        </div>
     </div>
 
     
 
     <script>
-        let saraf, toko, currentPath = "";
+        let saraf, toko, currentPath = "", editingPath = "";
 
         new QWebChannel(qt.webChannelTransport, function(channel) {
-            saraf = channel.objects.berkasSaraf; // Koneksi ke saraf_berkas.py
-            toko = channel.objects.tokoManager;  // Koneksi ke otak.py
+            saraf = channel.objects.berkasSaraf;
+            toko = channel.objects.tokoManager;
             muatFolder("");
         });
 
         function muatFolder(path) {
             currentPath = path;
-            document.getElementById('path-display').innerText = "HOME / " + path;
+            document.getElementById('path-display').innerText = "PATH: ~ / " + path;
             
             saraf.telusuri_folder(path, function(items) {
                 const container = document.getElementById('display-list');
                 container.innerHTML = "";
 
-                // Tombol Back folder
+                // Navigasi Naik Folder
                 if(path !== "") {
-                    const backDiv = document.createElement('div');
-                    backDiv.className = "item";
-                    backDiv.innerHTML = `<div class="item-info" onclick="naikFolder()">
-                        <span class="icon">🔙</span><span class="nama-file">.. (KEMBALI)</span>
-                    </div>`;
-                    container.appendChild(backDiv);
+                    const upDiv = document.createElement('div');
+                    upDiv.className = "item";
+                    upDiv.innerHTML = `<div class="item-info" onclick="naikFolder()"><span class="icon">🔙</span><b>.. (KEMBALI KE ATAS)</b></div>`;
+                    container.appendChild(upDiv);
                 }
 
                 items.forEach(item => {
@@ -100,10 +83,10 @@
                     div.innerHTML = `
                         <div class="item-info" onclick="aksiItem('${item.path_relatif}', '${item.tipe}')">
                             <span class="icon">${ikon}</span>
-                            <span class="nama-file">${item.nama}</span>
+                            <span>${item.nama}</span>
                         </div>
                         <div>
-                            <button class="btn" style="padding:4px 8px" onclick="renameItem('${item.path_relatif}')">✏️</button>
+                            <button class="btn" style="padding:4px 8px; border-color:#fff; color:#fff" onclick="renameItem('${item.path_relatif}')">✏️</button>
                             <button class="btn" style="padding:4px 8px; border-color:#f33; color:#f33" onclick="hapusItem('${item.path_relatif}')">❌</button>
                         </div>
                     `;
@@ -114,33 +97,44 @@
 
         function aksiItem(path, tipe) {
             if(tipe === 'folder') muatFolder(path);
-            else bukaIsiBerkas(path);
+            else bukaEditor(path);
         }
 
-        function bukaIsiBerkas(path) {
+        function bukaEditor(path) {
+            editingPath = path;
             saraf.baca_isi_berkas(path, function(konten) {
-                document.getElementById('view-title').innerText = "MENINJAU: " + path.split('/').pop();
+                document.getElementById('view-title').innerText = "EDIT: " + path.split('/').pop();
                 document.getElementById('file-content').value = konten;
                 document.getElementById('viewer').style.display = 'flex';
             });
         }
 
+        function simpanEdit() {
+            const status = document.getElementById('save-status');
+            const konten = document.getElementById('file-content').value;
+            status.innerText = "⏳ Menyimpan...";
+            
+            saraf.simpan_isi_berkas(editingPath, konten, function(sukses) {
+                if(sukses) {
+                    status.innerText = "✅ BERHASIL";
+                    setTimeout(() => { status.innerText = ""; }, 2000);
+                } else {
+                    alert("Gagal menyimpan berkas!");
+                    status.innerText = "❌ GAGAL";
+                }
+            });
+        }
+
         function hapusItem(path) {
-            if(confirm("Hapus file/folder ini secara permanen?")) {
-                saraf.hapus_item(path, function(sukses) {
-                    if(sukses) muatFolder(currentPath);
-                    else alert("Gagal menghapus!");
-                });
+            if(confirm("Hapus '" + path.split('/').pop() + "' secara permanen?")) {
+                saraf.hapus_item(path, function() { muatFolder(currentPath); });
             }
         }
 
         function renameItem(path) {
-            const namaBaru = prompt("Masukkan nama baru:");
+            const namaBaru = prompt("Nama baru:", path.split('/').pop());
             if(namaBaru) {
-                saraf.ganti_nama(path, namaBaru, function(sukses) {
-                    if(sukses) muatFolder(currentPath);
-                    else alert("Gagal ganti nama!");
-                });
+                saraf.ganti_nama(path, namaBaru, function() { muatFolder(currentPath); });
             }
         }
 
