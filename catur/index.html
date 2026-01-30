@@ -2,122 +2,181 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Siar Hacker Chess</title>
+    <title>Siar Hacker Chess AI</title>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
         :root { --neon: #39ff14; --bg: #000; --dim: rgba(57, 255, 20, 0.1); }
+        * { box-sizing: border-box; }
         body { 
-            background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; 
-            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+            background: var(--bg) !important; color: var(--neon); 
+            font-family: 'Courier New', monospace; margin: 0; 
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: center; height: 100vh; overflow: hidden;
         }
-        .header { margin-bottom: 20px; text-align: center; }
+
+        /* UI Header & Mode Selector */
+        .header { text-align: center; margin-bottom: 15px; }
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
         
-        /* Papan Catur Neon */
         .board {
-            display: grid; grid-template-columns: repeat(8, 60px); grid-template-rows: repeat(8, 60px);
+            display: grid; grid-template-columns: repeat(8, 62px); grid-template-rows: repeat(8, 62px);
             border: 4px solid var(--neon); box-shadow: 0 0 20px var(--dim);
         }
-        .square {
-            width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;
-            font-size: 40px; cursor: pointer; transition: 0.2s;
-        }
-        .black { background-color: #052d05; }
-        .white { background-color: #000; }
-        .selected { background-color: var(--neon) !important; color: #000; }
-        .highlight { box-shadow: inset 0 0 10px var(--neon); }
 
-        .btn-exit {
-            margin-top: 30px; padding: 10px 20px; border: 1px solid #f33; color: #f33;
-            background: none; cursor: pointer; font-family: inherit; font-weight: bold;
+        .square {
+            width: 62px; height: 62px; display: flex; align-items: center; 
+            justify-content: center; font-size: 42px; cursor: pointer;
         }
+        .black-sq { background-color: #051a05; }
+        .white-sq { background-color: #000000; }
+
+        /* Pembedaan Warna Bidak */
+        .piece-w { color: #ffffff !important; text-shadow: 0 0 10px #fff !important; }
+        .piece-b { color: var(--neon) !important; text-shadow: 0 0 10px var(--neon) !important; }
+
+        .selected { background-color: var(--neon) !important; color: #000 !important; }
+        
+        .status-box { 
+            margin-top: 10px; padding: 5px 20px; border: 1px solid var(--neon); 
+            font-weight: bold; letter-spacing: 2px;
+        }
+
+        .btn {
+            background: none; border: 1px solid var(--neon); color: var(--neon);
+            padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold;
+        }
+        .btn.active { background: var(--neon); color: #000; }
+        .btn-exit { margin-top: 20px; border-color: #f33; color: #f33; }
         .btn-exit:hover { background: #f33; color: #000; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1 style="letter-spacing: 5px;">SIAR_CHESS_V1</h1>
-        <div id="status">GILIRAN: PUTIH</div>
+        <h1 style="letter-spacing: 5px; margin: 5px 0;">SIAR_CHESS_AI</h1>
+        <div class="mode-selector">
+            <button id="btnPvP" class="btn active" onclick="setMode('PvP')">MANUSIA VS MANUSIA</button>
+            <button id="btnPvE" class="btn" onclick="setMode('PvE')">MANUSIA VS ROBOT</button>
+        </div>
+        <div id="status" class="status-box">SIAP_BERTANDING</div>
     </div>
 
     <div class="board" id="board"></div>
 
     <button class="btn-exit" onclick="toko.buka_aplikasi_siar('dashboard')">KELUAR_KE_DASHBOARD</button>
 
+    
+
     <script>
         let game = new Chess();
         let selectedSquare = null;
+        let gameMode = 'PvP'; // PvP atau PvE
         let toko;
 
-        // Inisialisasi Jalur Komunikasi ke Otak
         new QWebChannel(qt.webChannelTransport, function(channel) {
             toko = channel.objects.tokoManager;
+            renderBoard();
         });
+
+        function setMode(mode) {
+            gameMode = mode;
+            game.reset();
+            selectedSquare = null;
+            document.getElementById('btnPvP').classList.toggle('active', mode === 'PvP');
+            document.getElementById('btnPvE').classList.toggle('active', mode === 'PvE');
+            renderBoard();
+        }
+
+        // --- LOGIKA ROBOT (MINIMAX) ---
+        function evaluateBoard(board) {
+            const weights = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+            let total = 0;
+            board.forEach(row => {
+                row.forEach(p => {
+                    if (p) total += (p.color === 'w' ? -weights[p.type] : weights[p.type]);
+                });
+            });
+            return total;
+        }
+
+        function makeAiMove() {
+            const moves = game.moves();
+            if (moves.length === 0) return;
+
+            // Berpikir sejenak...
+            setTimeout(() => {
+                let bestMove = null;
+                let bestValue = -Infinity;
+
+                moves.forEach(move => {
+                    game.move(move);
+                    let boardValue = evaluateBoard(game.board());
+                    game.undo();
+                    if (boardValue > bestValue) {
+                        bestValue = boardValue;
+                        bestMove = move;
+                    }
+                });
+
+                game.move(bestMove || moves[Math.floor(Math.random() * moves.length)]);
+                renderBoard();
+            }, 500);
+        }
 
         function renderBoard() {
             const boardElement = document.getElementById('board');
             boardElement.innerHTML = '';
-            
-            const squares = game.SQUARES;
-            // Chess.js urutannya a8 ke h1, kita sesuaikan tampilannya
-            const rows = [8,7,6,5,4,3,2,1];
-            const cols = ['a','b','c','d','e','f','g','h'];
+            const rows = [8,7,6,5,4,3,2,1], cols = ['a','b','c','d','e','f','g','h'];
 
-            rows.forEach(row => {
-                cols.forEach(col => {
+            rows.forEach((row, rIdx) => {
+                cols.forEach((col, cIdx) => {
                     const squareId = col + row;
                     const piece = game.get(squareId);
                     const div = document.createElement('div');
-                    
-                    div.className = `square ${(rows.indexOf(row) + cols.indexOf(col)) % 2 === 0 ? 'white' : 'black'}`;
+                    div.className = `square ${(rIdx + cIdx) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
                     div.id = squareId;
                     
                     if (piece) {
                         div.innerText = getPieceUnicode(piece);
+                        div.classList.add(piece.color === 'w' ? 'piece-w' : 'piece-b');
                     }
-
                     if (selectedSquare === squareId) div.classList.add('selected');
-
                     div.onclick = () => handleSquareClick(squareId);
                     boardElement.appendChild(div);
                 });
             });
 
-            document.getElementById('status').innerText = `GILIRAN: ${game.turn() === 'w' ? 'PUTIH' : 'HITAM'}`;
+            const turn = game.turn() === 'w' ? '<span class="piece-w">PUTIH</span>' : '<span class="piece-b">HITAM</span>';
+            document.getElementById('status').innerHTML = "GILIRAN: " + turn;
+            
+            if (game.game_over()) document.getElementById('status').innerHTML = "SKAKMAT / SERI";
         }
 
         function getPieceUnicode(piece) {
-            const icons = {
-                'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
-                'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
-            };
+            const icons = { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', P:'♙', R:'♖', N:'♘', B:'♗', Q:'♕', K:'♔' };
             return icons[piece.type === piece.type.toLowerCase() ? piece.type : piece.type.toUpperCase()];
         }
 
         function handleSquareClick(squareId) {
+            if (gameMode === 'PvE' && game.turn() === 'b') return;
+
             if (selectedSquare === null) {
-                if (game.get(squareId)) {
+                const piece = game.get(squareId);
+                if (piece && piece.color === game.turn()) {
                     selectedSquare = squareId;
                     renderBoard();
                 }
             } else {
                 let move = game.move({ from: selectedSquare, to: squareId, promotion: 'q' });
-                if (move === null) {
-                    // Jika klik bidak lain milik sendiri, ganti seleksi
-                    if (game.get(squareId) && game.get(squareId).color === game.get(selectedSquare).color) {
-                        selectedSquare = squareId;
-                    } else {
-                        selectedSquare = null;
-                    }
-                } else {
-                    selectedSquare = null;
-                    if (game.game_over()) alert("PERMAINAN SELESAI!");
-                }
+                selectedSquare = null;
                 renderBoard();
+
+                if (move && gameMode === 'PvE' && !game.game_over()) {
+                    makeAiMove();
+                }
             }
         }
-
         renderBoard();
     </script>
 </body>
