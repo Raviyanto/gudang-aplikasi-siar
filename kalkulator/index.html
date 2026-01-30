@@ -1,126 +1,36 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siar Kalkulator Saintifik</title>
-    <script src="qwebchannel.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
-        :root {
-            --neon: #39ff14;
-            --bg: #000;
-            --dark-green: #052205;
+        :root { --neon: #39ff14; --bg: #000; }
+        body { background: var(--bg); color: var(--neon); font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        
+        /* Tombol Kembali Gaya Neon */
+        .btn-back { 
+            position: absolute; top: 20px; left: 20px; 
+            background: none; border: 1px solid var(--neon); 
+            color: var(--neon); padding: 10px 15px; cursor: pointer; 
+            font-family: inherit; font-weight: bold;
         }
+        .btn-back:hover { background: var(--neon); color: var(--bg); box-shadow: 0 0 10px var(--neon); }
 
-        body {
-            background: var(--bg);
-            color: var(--neon);
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        /* Tombol Navigasi Kembali */
-        .btn-back {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: transparent;
-            border: 1px solid var(--neon);
-            color: var(--neon);
-            padding: 8px 15px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
-        }
-
-        .btn-back:hover {
-            background: var(--neon);
-            color: #000;
-            box-shadow: 0 0 10px var(--neon);
-        }
-
-        .calc-container {
-            border: 2px solid var(--neon);
-            padding: 25px;
-            background: #050505;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
-            width: 320px;
-        }
-
-        #display {
-            width: 100%;
-            height: 60px;
-            background: #111;
-            border: 1px solid var(--neon);
-            color: var(--neon);
-            text-align: right;
-            padding: 10px;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            box-sizing: border-box;
-            outline: none;
-            box-shadow: inset 0 0 5px var(--neon);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        button {
-            background: #000;
-            border: 1px solid var(--neon);
-            color: var(--neon);
-            padding: 15px 5px;
-            font-size: 1em;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-
-        button:hover {
-            background: var(--neon);
-            color: #000;
-            box-shadow: 0 0 8px var(--neon);
-        }
-
-        button:active {
-            transform: scale(0.95);
-        }
-
-        /* Gaya Khusus Tombol Saintifik */
-        .sci {
-            background: var(--dark-green);
-            font-size: 0.85em;
-        }
-
-        .op {
-            color: #fff;
-            border-color: #fff;
-        }
-
-        .equal {
-            grid-column: span 2;
-            background: var(--neon);
-            color: #000;
-        }
+        .calc-box { border: 2px solid var(--neon); padding: 20px; box-shadow: 0 0 15px var(--neon); width: 320px; }
+        #screen { width: 100%; height: 60px; background: #111; border: 1px solid var(--neon); color: var(--neon); text-align: right; font-size: 1.8rem; margin-bottom: 15px; padding: 10px; box-sizing: border-box; outline: none; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        button { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 15px 5px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+        button:hover { background: var(--neon); color: var(--bg); }
+        .sci { background: #052205; font-size: 0.8rem; }
+        .equal { grid-column: span 2; background: var(--neon); color: var(--bg); }
     </style>
 </head>
 <body>
+    <button class="btn-back" onclick="kembali()">◀ KEMBALI</button>
 
-    <button class="btn-back" onclick="kembaliKeDashboard()">◀ DASHBOARD</button>
-
-    <div class="calc-container">
-        <input type="text" id="display" readonly value="0">
-        
+    <h2>KALKULATOR_SAINTIFIK</h2>
+    <div class="calc-box">
+        <input type="text" id="screen" readonly value="0">
         <div class="grid">
             <button class="sci" onclick="pakar('sin')">sin</button>
             <button class="sci" onclick="pakar('cos')">cos</button>
@@ -132,81 +42,41 @@
             <button class="sci" onclick="pakar('log')">log</button>
             <button class="sci" onclick="pakar('pi')">π</button>
 
-            <button onclick="tekan('7')">7</button>
-            <button onclick="tekan('8')">8</button>
-            <button onclick="tekan('9')">9</button>
-            <button class="op" onclick="tekan('/')">/</button>
-
-            <button onclick="tekan('4')">4</button>
-            <button onclick="tekan('5')">5</button>
-            <button onclick="tekan('6')">6</button>
-            <button class="op" onclick="tekan('*')">×</button>
-
-            <button onclick="tekan('1')">1</button>
-            <button onclick="tekan('2')">2</button>
-            <button onclick="tekan('3')">3</button>
-            <button class="op" onclick="tekan('-')">-</button>
-
-            <button onclick="tekan('0')">0</button>
-            <button onclick="tekan('.')">.</button>
-            <button class="equal" onclick="hitung()">=</button>
-            <button class="op" onclick="tekan('+')">+</button>
+            <button onclick="tekan('7')">7</button><button onclick="tekan('8')">8</button><button onclick="tekan('9')">9</button><button onclick="tekan('/')">/</button>
+            <button onclick="tekan('4')">4</button><button onclick="tekan('5')">5</button><button onclick="tekan('6')">6</button><button onclick="tekan('*')">x</button>
+            <button onclick="tekan('1')">1</button><button onclick="tekan('2')">2</button><button onclick="tekan('3')">3</button><button onclick="tekan('-')">-</button>
+            <button onclick="tekan('0')">0</button><button onclick="tekan('.')">.</button><button class="equal" onclick="hitung()">=</button><button onclick="tekan('+')">+</button>
         </div>
     </div>
 
-    
-
     <script>
-        let backend;
-        const layar = document.getElementById('display');
+        let toko;
+        const s = document.getElementById('screen');
 
-        // Koneksi ke Python via QWebChannel
-        new QWebChannel(qt.webChannelTransport, function (channel) {
-            // Menggunakan objek 'toko' yang sudah terdaftar di otak.py
-            backend = channel.objects.toko; 
+        // Hubungkan ke syaraf pusat
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            toko = channel.objects.tokoManager; 
         });
 
-        function kembaliKeDashboard() {
-            if (backend) {
-                // Memberitahu otak.py untuk memuat ulang dashboard.html
-                backend.buka_aplikasi_siar('dashboard');
+        function kembali() {
+            if(toko) { 
+                toko.buka_aplikasi_siar('dashboard'); // Perintah ke otak.py
             }
         }
 
-        function tekan(karakter) {
-            if (layar.value === "0" || layar.value === "Error") {
-                layar.value = karakter;
-            } else {
-                layar.value += karakter;
-            }
-        }
-
-        function hapus() {
-            layar.value = "0";
-        }
-
-        function hitung() {
-            try {
-                // Menggunakan eval untuk perhitungan matematika dasar
-                layar.value = eval(layar.value.replace('×', '*'));
-            } catch (e) {
-                layar.value = "Error";
-            }
-        }
-
+        function tekan(v) { if(s.value === '0') s.value = v; else s.value += v; }
+        function hapus() { s.value = '0'; }
+        function hitung() { try { s.value = eval(s.value); } catch { s.value = 'ERROR'; } }
+        
         function pakar(aksi) {
-            let angka = parseFloat(layar.value);
-            if (isNaN(angka)) return;
-
-            switch(aksi) {
-                case 'sin': layar.value = Math.sin(angka * Math.PI / 180).toFixed(4); break;
-                case 'cos': layar.value = Math.cos(angka * Math.PI / 180).toFixed(4); break;
-                case 'tan': layar.value = Math.tan(angka * Math.PI / 180).toFixed(4); break;
-                case 'sqrt': layar.value = Math.sqrt(angka).toFixed(4); break;
-                case 'pow': layar.value = Math.pow(angka, 2); break;
-                case 'log': layar.value = Math.log10(angka).toFixed(4); break;
-                case 'pi': layar.value = Math.PI.toFixed(4); break;
-            }
+            let n = parseFloat(s.value);
+            if (aksi === 'sin') s.value = Math.sin(n * Math.PI / 180).toFixed(4);
+            if (aksi === 'cos') s.value = Math.cos(n * Math.PI / 180).toFixed(4);
+            if (aksi === 'tan') s.value = Math.tan(n * Math.PI / 180).toFixed(4);
+            if (aksi === 'sqrt') s.value = Math.sqrt(n).toFixed(4);
+            if (aksi === 'pow') s.value = Math.pow(n, 2);
+            if (aksi === 'log') s.value = Math.log10(n).toFixed(4);
+            if (aksi === 'pi') s.value = Math.PI.toFixed(4);
         }
     </script>
 </body>
