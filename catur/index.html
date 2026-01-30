@@ -2,167 +2,157 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Siar Hacker Chess AI Smart</title>
+    <title>Siar Hacker Chess AI Pro</title>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
         :root { --neon: #39ff14; --bg: #000; --dim: rgba(57, 255, 20, 0.1); }
         * { box-sizing: border-box; }
+        
+        /* FIX LAYOUT */
         body { 
             background: var(--bg) !important; color: var(--neon); 
-            font-family: 'Courier New', monospace; margin: 0; 
+            font-family: 'Courier New', monospace; margin: 0; padding: 5px;
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; height: 100vh; overflow: hidden;
+            justify-content: center; height: 100vh; width: 100vw; overflow: hidden;
         }
 
-        .header { text-align: center; margin-bottom: 15px; }
-        .mode-selector { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+        .header { text-align: center; margin-bottom: 5px; flex-shrink: 0; }
+        .mode-selector { display: flex; gap: 5px; margin-bottom: 5px; }
         
+        /* Ukuran Board Dinamis agar tidak terpotong bawah */
         .board {
-            display: grid; grid-template-columns: repeat(8, 62px); grid-template-rows: repeat(8, 62px);
-            border: 4px solid var(--neon); box-shadow: 0 0 20px var(--dim);
+            display: grid; 
+            grid-template-columns: repeat(8, min(10vh, 55px)); 
+            grid-template-rows: repeat(8, min(10vh, 55px));
+            border: 3px solid var(--neon); box-shadow: 0 0 15px var(--dim);
         }
 
         .square {
-            width: 62px; height: 62px; display: flex; align-items: center; 
-            justify-content: center; font-size: 42px; cursor: pointer;
+            width: 100%; height: 100%; display: flex; align-items: center; 
+            justify-content: center; font-size: min(6vh, 35px); cursor: pointer;
         }
         .black-sq { background-color: #051a05; }
         .white-sq { background-color: #000000; }
 
-        /* Warna Bidak Kontras */
         .piece-w { color: #ffffff !important; text-shadow: 0 0 10px #fff !important; }
         .piece-b { color: var(--neon) !important; text-shadow: 0 0 10px var(--neon) !important; }
-
         .selected { background-color: var(--neon) !important; color: #000 !important; }
         
         .status-box { 
-            margin-top: 10px; padding: 5px 20px; border: 1px solid var(--neon); 
-            font-weight: bold; letter-spacing: 2px; text-align: center;
+            margin-top: 5px; padding: 2px 15px; border: 1px solid var(--neon); 
+            font-weight: bold; font-size: 0.9rem; text-align: center;
         }
 
         .btn {
             background: none; border: 1px solid var(--neon); color: var(--neon);
-            padding: 8px 15px; cursor: pointer; font-family: inherit; font-weight: bold;
+            padding: 5px 10px; cursor: pointer; font-family: inherit; font-size: 0.8rem;
         }
         .btn.active { background: var(--neon); color: #000; }
-        .btn-exit { margin-top: 20px; border-color: #f33; color: #f33; }
-        .btn-exit:hover { background: #f33; color: #000; }
+        .btn-exit { margin-top: 5px; border-color: #f33; color: #f33; flex-shrink: 0; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1 style="letter-spacing: 5px; margin: 5px 0;">SIAR_CHESS_AI_V2</h1>
+        <h2 style="letter-spacing: 3px; margin: 0; font-size: 1.2rem;">SIAR_CHESS_PRO</h2>
         <div class="mode-selector">
-            <button id="btnPvP" class="btn active" onclick="setMode('PvP')">MANUSIA VS MANUSIA</button>
-            <button id="btnPvE" class="btn" onclick="setMode('PvE')">MANUSIA VS ROBOT (PINTAR)</button>
+            <button id="btnPvP" class="btn active" onclick="setMode('PvP')">MANUSIA</button>
+            <button id="btnPvE" class="btn" onclick="setMode('PvE')">ROBOT_PRO</button>
         </div>
-        <div id="status" class="status-box">SIAP_BERTANDING</div>
+        <div id="status" class="status-box">SIAP</div>
     </div>
 
     <div class="board" id="board"></div>
 
-    <button class="btn-exit" onclick="toko.buka_aplikasi_siar('dashboard')">KELUAR_KE_DASHBOARD</button>
+    <button class="btn-exit" onclick="toko.buka_aplikasi_siar('dashboard')">KELUAR</button>
 
     <script>
         let game = new Chess();
         let selectedSquare = null;
         let gameMode = 'PvP';
         let toko;
-        // Kedalaman berpikir robot (2 langkah ke depan)
-        const AI_DEPTH = 2; 
+        const AI_DEPTH = 3; // IQ Ditingkatkan
 
         new QWebChannel(qt.webChannelTransport, function(channel) {
             toko = channel.objects.tokoManager;
             renderBoard();
         });
 
-        function setMode(mode) {
-            gameMode = mode;
-            game.reset();
-            selectedSquare = null;
-            document.getElementById('btnPvP').classList.toggle('active', mode === 'PvP');
-            document.getElementById('btnPvE').classList.toggle('active', mode === 'PvE');
-            renderBoard();
-        }
+        // Tabel Strategi Posisi (Pawn, Knight)
+        const pst = {
+            p: [ [0,0,0,0,0,0,0,0],[5,5,5,5,5,5,5,5],[1,1,2,3,3,2,1,1],[0.5,0.5,1,2.5,2.5,1,0.5,0.5],[0,0,0,2,2,0,0,0],[0.5,-0.5,-1,0,0,-1,-0.5,0.5],[0.5,1,1,-2,-2,1,1,0.5],[0,0,0,0,0,0,0,0] ],
+            n: [ [-5,-4,-3,-3,-3,-3,-4,-5],[-4,-2,0,0,0,0,-2,-4],[-3,0,1,1.5,1.5,1,0,-3],[-3,0.5,1.5,2,2,1.5,0.5,-3],[-3,0,1.5,2,2,1.5,0,-3],[-3,0.5,1,1.5,1.5,1,0.5,-3],[-4,-2,0,0.5,0.5,0,-2,-4],[-5,-4,-3,-3,-3,-3,-4,-5] ]
+        };
 
-        // --- LOGIKA AI MINIMAX (LEBIH PINTAR) ---
-        function evaluateBoard(board) {
-            // Nilai dasar bidak
-            const weights = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+        function evaluateBoard(game) {
             let total = 0;
-            board.forEach(row => {
-                row.forEach(p => {
-                    if (p) total += (p.color === 'w' ? -weights[p.type] : weights[p.type]);
-                });
-            });
+            const board = game.board();
+            const weights = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+
+            for(let i=0; i<8; i++) {
+                for(let j=0; j<8; j++) {
+                    const p = board[i][j];
+                    if(p) {
+                        let val = weights[p.type];
+                        // Bonus posisi untuk Pion dan Kuda
+                        if(pst[p.type]) val += pst[p.type][p.color === 'w' ? 7-i : i][j];
+                        total += (p.color === 'w' ? -val : val);
+                    }
+                }
+            }
             return total;
         }
 
-        // Fungsi rekursif Minimax
-        function minimax(depth, game, isMaximizingPlayer) {
-            if (depth === 0 || game.game_over()) {
-                return evaluateBoard(game.board());
-            }
-
+        function minimax(depth, game, alpha, beta, isMax) {
+            if (depth === 0 || game.game_over()) return evaluateBoard(game);
             const moves = game.moves();
-            if (isMaximizingPlayer) {
-                let bestVal = -Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    game.move(moves[i]);
-                    bestVal = Math.max(bestVal, minimax(depth - 1, game, false));
+            if (isMax) {
+                let best = -Infinity;
+                for (let m of moves) {
+                    game.move(m);
+                    best = Math.max(best, minimax(depth - 1, game, alpha, beta, false));
                     game.undo();
+                    alpha = Math.max(alpha, best);
+                    if (beta <= alpha) break; // Alpha-Beta Pruning
                 }
-                return bestVal;
+                return best;
             } else {
-                let bestVal = Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    game.move(moves[i]);
-                    bestVal = Math.min(bestVal, minimax(depth - 1, game, true));
+                let best = Infinity;
+                for (let m of moves) {
+                    game.move(m);
+                    best = Math.min(best, minimax(depth - 1, game, alpha, beta, true));
                     game.undo();
+                    beta = Math.min(beta, best);
+                    if (beta <= alpha) break;
                 }
-                return bestVal;
+                return best;
             }
         }
 
-        // Fungsi utama untuk memanggil AI
         function makeAiMove() {
             const moves = game.moves();
             if (moves.length === 0) return;
+            document.getElementById('status').innerText = "ROBOT_BERPIKIR...";
 
-            document.getElementById('status').innerText = "ROBOT SEDANG BERPIKIR...";
-
-            // Gunakan timeout agar UI tidak hang saat AI berpikir
             setTimeout(() => {
                 let bestMove = null;
-                // Robot (Hitam) ingin nilai setinggi mungkin (Maximizing)
                 let bestValue = -Infinity;
-
-                for (let i = 0; i < moves.length; i++) {
-                    let move = moves[i];
-                    game.move(move);
-                    // Panggil minimax untuk langkah selanjutnya (giliran Putih/Minimizing)
-                    let boardValue = minimax(AI_DEPTH - 1, game, false);
+                for (let m of moves) {
+                    game.move(m);
+                    let val = minimax(AI_DEPTH - 1, game, -Infinity, Infinity, false);
                     game.undo();
-                    if (boardValue > bestValue) {
-                        bestValue = boardValue;
-                        bestMove = move;
-                    }
+                    if (val > bestValue) { bestValue = val; bestMove = m; }
                 }
-                
-                // Jika ada langkah terbaik, jalankan. Jika tidak (jarang terjadi), acak.
-                game.move(bestMove || moves[Math.floor(Math.random() * moves.length)]);
+                game.move(bestMove || moves[0]);
                 renderBoard();
-            }, 100);
+            }, 50);
         }
-        // ---------------------------------------------------------
 
         function renderBoard() {
             const boardElement = document.getElementById('board');
             boardElement.innerHTML = '';
             const rows = [8,7,6,5,4,3,2,1], cols = ['a','b','c','d','e','f','g','h'];
-
             rows.forEach((row, rIdx) => {
                 cols.forEach((col, cIdx) => {
                     const squareId = col + row;
@@ -170,7 +160,6 @@
                     const div = document.createElement('div');
                     div.className = `square ${(rIdx + cIdx) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
                     div.id = squareId;
-                    
                     if (piece) {
                         div.innerText = getPieceUnicode(piece);
                         div.classList.add(piece.color === 'w' ? 'piece-w' : 'piece-b');
@@ -180,59 +169,44 @@
                     boardElement.appendChild(div);
                 });
             });
-
             updateStatus();
         }
 
-        // --- PERBAIKAN STATUS SKAKMAT VS SERI ---
         function updateStatus() {
             const statusBox = document.getElementById('status');
-            
             if (game.in_checkmate()) {
-                const winner = game.turn() === 'w' ? 'HITAM' : 'PUTIH';
-                statusBox.innerHTML = `<span style="color:#f33">SKAKMAT! PEMENANG: ${winner}</span>`;
+                statusBox.innerHTML = `<span style="color:#f33">SKAKMAT! MENANG: ${game.turn() === 'w' ? 'HITAM' : 'PUTIH'}</span>`;
             } else if (game.in_draw()) {
-                let reason = "SERI (REMIS)";
-                if (game.in_stalemate()) reason = "SERI (PAT/STALEMATE)";
-                else if (game.insufficient_material()) reason = "SERI (MATERI TIDAK CUKUP)";
-                statusBox.innerHTML = `<span style="color:#f33">${reason}</span>`;
+                statusBox.innerHTML = `<span style="color:#f33">SERI / REMIS</span>`;
             } else {
-                // Game masih berjalan
                 const turn = game.turn() === 'w' ? '<span class="piece-w">PUTIH</span>' : '<span class="piece-b">HITAM</span>';
-                let statusText = "GILIRAN: " + turn;
-                if (game.in_check()) statusText += " <span style='color:#f33'>(SKAK!)</span>";
-                statusBox.innerHTML = statusText;
+                statusBox.innerHTML = `GILIRAN: ${turn} ${game.in_check() ? '<b style="color:#f33"> (SKAK!)</b>' : ''}`;
             }
+        }
+
+        function setMode(mode) { gameMode = mode; game.reset(); selectedSquare = null; 
+            document.getElementById('btnPvP').classList.toggle('active', mode === 'PvP');
+            document.getElementById('btnPvE').classList.toggle('active', mode === 'PvE');
+            renderBoard();
         }
 
         function getPieceUnicode(piece) {
             const icons = { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', P:'♙', R:'♖', N:'♘', B:'♗', Q:'♕', K:'♔' };
-            return icons[piece.type === piece.type.toLowerCase() ? piece.type : piece.type.toUpperCase()];
+            return icons[piece.type];
         }
 
         function handleSquareClick(squareId) {
-            // Cegah klik jika giliran robot atau game selesai
             if ((gameMode === 'PvE' && game.turn() === 'b') || game.game_over()) return;
-
             if (selectedSquare === null) {
                 const piece = game.get(squareId);
-                if (piece && piece.color === game.turn()) {
-                    selectedSquare = squareId;
-                    renderBoard();
-                }
+                if (piece && piece.color === game.turn()) { selectedSquare = squareId; renderBoard(); }
             } else {
                 let move = game.move({ from: selectedSquare, to: squareId, promotion: 'q' });
-                selectedSquare = null;
-                renderBoard();
-
-                if (move && gameMode === 'PvE' && !game.game_over()) {
-                    makeAiMove();
-                }
+                selectedSquare = null; renderBoard();
+                if (move && gameMode === 'PvE' && !game.game_over()) makeAiMove();
             }
         }
-        
-        // Render awal jika QWebChannel belum siap
-        if(!toko) renderBoard();
+        renderBoard();
     </script>
 </body>
 </html>
